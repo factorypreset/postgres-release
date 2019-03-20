@@ -10,7 +10,8 @@ current_version="11.2"
 pgversion_current="postgres-${current_version}"
 
 JOB_DIR=/var/vcap/jobs/postgres
-PACKAGE_DIR="/var/vcap/packages/${pgversion_current}"
+PACKAGES_DIR="/var/vcap/packages"
+PACKAGE_DIR="${PACKAGES_DIR}/${pgversion_current}"
 STORE_DIR=/var/vcap/store
 PG_STORE_DIR=${STORE_DIR}/postgres
 VERSION_FILE=${PG_STORE_DIR}/POSTGRES_DATA_VERSION
@@ -42,11 +43,13 @@ PGJANITOR_PIDFILE="${RUN_DIR}/pg_janitor.pid"
 HOST="0.0.0.0"
 PORT="<%= p("databases.port") %>"
 
-if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
-  LD_LIBRARY_PATH="${PACKAGE_DIR}/lib:${LD_LIBRARY_PATH}"
-else
-  LD_LIBRARY_PATH="${PACKAGE_DIR}/lib"
-fi
+for lib_dir in $(find ${PACKAGES_DIR} ${PACKAGES_DIR}/*/lib -maxdepth 0 -type d ! -path ${PACKAGES_DIR}); do
+  if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+    LD_LIBRARY_PATH="${lib_dir}:${LD_LIBRARY_PATH}"
+  else
+    LD_LIBRARY_PATH="${lib_dir}"
+  fi
+done
 export LD_LIBRARY_PATH
 
 DATABASES=(<%= p("databases.databases", []).map{|d| d["name"]}.join(' ')%>)
